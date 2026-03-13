@@ -10,7 +10,7 @@ Real-time Streamlit app for quickly evaluating open-source LLMs on Ollama Cloud 
 
 ## Contributing Questions
 
-To update existing questions or add new ones, please open a Pull Request on GitHub by editing `benchmark.json`.
+To update existing questions or add new ones, please open a Pull Request on GitHub by editing `data/benchmark.json`.
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ streamlit run app.py
 ## Dataset
 
 Source-of-truth dataset is:
-- `benchmark.json`
+- `data/benchmark.json`
 
 Each record must include:
 - `id` (immutable, format `qNNN`, e.g. `q001`)
@@ -47,10 +47,24 @@ Dataset loading, validation, and writes are handled by:
 - `data/results.json`: canonical run results
 - `results.md`: auto-generated comparison report (accuracy + latency + matrix)
 
+## Question Distribution by Topic
+
+| Topic | Question Count | Share |
+|---|---:|---:|
+| Türkçe | 6 | 26.1% |
+| HAFIZA | 4 | 17.4% |
+| Genel Kültür | 4 | 17.4% |
+| Mantık | 4 | 17.4% |
+| FİNANS | 2 | 8.7% |
+| Coğrafya | 1 | 4.3% |
+| KODLAMA | 1 | 4.3% |
+| Tarih | 1 | 4.3% |
+| **Toplam** | **23** | **100%** |
+
 ## Current Behavior
 
-- App reads questions only from `benchmark.json` (no PDF/DOCX extraction path).
-- Expected answer edits in UI are written back to `benchmark.json` by question `id`.
+- App reads questions only from `data/benchmark.json` (no PDF/DOCX extraction path).
+- Expected answer edits in UI are written back to `data/benchmark.json` by question `id`.
 - Model responses stream in real time in the UI.
 - Results are auto-saved after each run/decision.
 - Default system prompt enforces Turkish answers.

@@ -30,8 +30,8 @@ from storage import (
 
 
 ROOT = Path(__file__).resolve().parent
-BENCHMARK_PATH = ROOT / "benchmark.json"
 DATA_DIR = ROOT / "data"
+BENCHMARK_PATH = DATA_DIR / "benchmark.json"
 RESULTS_PATH = DATA_DIR / "results.json"
 RESULTS_MD_PATH = ROOT / "results.md"
 
@@ -390,7 +390,7 @@ def render() -> None:
         st.header("Ayarlar")
         api_ok = bool(os.getenv("OLLAMA_API_KEY", "").strip())
         st.write(f"API anahtarı durumu: {'✅ Hazır' if api_ok else '❌ Eksik'}")
-        if st.button("Soru setini yenile (benchmark.json)", use_container_width=True):
+        if st.button("Soru setini yenile (data/benchmark.json)", use_container_width=True):
             st.rerun()
 
         if st.button("Model listesini yenile", use_container_width=True):
@@ -411,7 +411,7 @@ def render() -> None:
     question_by_id = {q["id"]: q for q in questions}
 
     if not questions:
-        st.error("Hiç soru bulunamadı. benchmark.json içeriğini kontrol edin.")
+        st.error("Hiç soru bulunamadı. data/benchmark.json içeriğini kontrol edin.")
         return
 
     if not RESULTS_PATH.exists():
@@ -491,7 +491,7 @@ def render() -> None:
             question["expected_source"] = "benchmark_json"
             question["confidence"] = 1.0 if expected_value.strip() else 0.3
             payload["questions"][idx] = question
-            st.success("Beklenen cevap benchmark.json içinde güncellendi.")
+            st.success("Beklenen cevap data/benchmark.json içinde güncellendi.")
 
     runner = get_runner(st.session_state.session_id)
     snapshot = runner.snapshot()
