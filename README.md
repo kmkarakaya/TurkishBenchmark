@@ -1,6 +1,16 @@
 # Turkish LLM Benchmark (MVP)
 
-Real-time Streamlit app for benchmarking Ollama Cloud models on Turkish Q/A.
+Real-time Streamlit app for quickly evaluating open-source LLMs on Ollama Cloud with a simple Turkish Q/A benchmark.
+
+## Overview
+
+- This app uses a simple Turkish question-answer set to provide a fast baseline evaluation for Ollama Cloud models.
+- The questions were prepared by Murat Karakaya for instructional purposes.
+- The app provides a lightweight UI and backend to run evaluations, compare models, and record results automatically.
+
+## Contributing Questions
+
+To update existing questions or add new ones, please open a Pull Request on GitHub by editing `benchmark.json`.
 
 ## Quick Start
 
