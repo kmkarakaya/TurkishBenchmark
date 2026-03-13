@@ -10,7 +10,7 @@ Real-time Streamlit app for quickly evaluating open-source LLMs on Ollama Cloud 
 
 ## Contributing Questions
 
-To update existing questions or add new ones, please open a Pull Request on GitHub by editing `data/benchmark.json`.
+To update existing questions or add new ones, please open a Pull Request on GitHub by editing `data/benchmark.json`. Follow the existing JSON structure, fill all fields correctly, and assign a new unique `id` in `qNNN` format (use the next available number, do not renumber existing IDs).
 
 ## Quick Start
 
