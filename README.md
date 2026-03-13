@@ -47,6 +47,17 @@ Dataset loading, validation, and writes are handled by:
 - `data/results.json`: canonical run results
 - `results.md`: auto-generated comparison report (accuracy + latency + matrix)
 
+## Current Results (Snapshot)
+
+Latest full report is in `results.md`. Current model comparison snapshot:
+
+| Model | Accuracy % | Success/Scored | Median (s) | Mean (s) | P95 (s) | Latency Score |
+|---|---:|---:|---:|---:|---:|---:|
+| qwen3.5:397b | 100.0 | 4/4 | 17.07 | 16.80 | 21.08 | 15.2 |
+| gemma3:12b | 87.5 | 7/8 | 2.60 | 3.62 | 7.77 | 100.0 |
+| gemma3:4b | 77.8 | 7/9 | 3.43 | 3.56 | 4.96 | 75.9 |
+| gemma3:27b | 66.7 | 2/3 | 6.80 | 7.60 | 10.48 | 38.2 |
+
 ## Question Distribution by Topic
 
 | Topic | Question Count | Share |
