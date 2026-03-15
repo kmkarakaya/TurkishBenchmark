@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import time
 import uuid
@@ -9,12 +10,12 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from data.benchmark import (
     DEFAULT_SYSTEM_PROMPT,
     DatasetValidationError,
     load_benchmark_payload,
-    save_expected_answer,
 )
 from engine import get_client, list_models
 from runner import get_runner
@@ -46,13 +47,16 @@ def init_page() -> None:
         """
         <style>
           :root {
-            --bg-top: #fff8ef;
-            --bg-bottom: #eef7ff;
+            --bg-top: #f6f8fc;
+            --bg-bottom: #e9f0f8;
             --card: #ffffff;
-            --ink: #1f2430;
-            --muted: #5d6470;
-            --accent: #0e7490;
-            --accent-2: #ef7f1a;
+            --ink: #0f172a;
+            --muted: #475569;
+            --accent: #1f6faa;
+            --accent-hover: #175a8a;
+            --accent-strong: #124a73;
+            --disabled-bg: #94a3b8;
+            --disabled-border: #7b8ba1;
             --ok: #137a43;
             --fail: #b42318;
           }
@@ -60,6 +64,19 @@ def init_page() -> None:
             background: radial-gradient(1400px 600px at -10% -20%, #ffe7ca 0%, transparent 60%),
                         radial-gradient(1000px 500px at 120% 120%, #d8f2ff 0%, transparent 60%),
                         linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+          }
+          [data-testid="stHeader"] {
+            background: linear-gradient(180deg, #f7fbff 0%, #eef5fc 100%) !important;
+            border-bottom: 1px solid #d9e4f0 !important;
+          }
+          [data-testid="stHeader"] *,
+          [data-testid="stToolbar"] *,
+          [data-testid="stStatusWidget"] * {
+            color: var(--ink) !important;
+            -webkit-text-fill-color: var(--ink) !important;
+          }
+          [data-testid="stDecoration"] {
+            background: transparent !important;
           }
           .block-container {
             padding-top: 1.5rem;
@@ -82,34 +99,45 @@ def init_page() -> None:
           [data-testid="stSidebar"] .stButton > button {
             background: var(--accent) !important;
             color: #ffffff !important;
-            border: 1px solid #0b5f75 !important;
-          }
-          [data-testid="stAppViewContainer"] .stButton > button {
-            background: #0e7490 !important;
-            color: #ffffff !important;
-            border: 1px solid #0b5f75 !important;
+            border: 1px solid var(--accent-strong) !important;
             font-weight: 600 !important;
           }
-          [data-testid="stAppViewContainer"] .stButton > button:hover {
-            background: #0b5f75 !important;
+          [data-testid="stAppViewContainer"] .stButton > button {
+            background: var(--accent) !important;
             color: #ffffff !important;
-            border-color: #0a5266 !important;
+            border: 1px solid var(--accent-strong) !important;
+            font-weight: 600 !important;
+          }
+          [data-testid="stAppViewContainer"] .stButton > button *,
+          [data-testid="stSidebar"] .stButton > button * {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+          }
+          [data-testid="stAppViewContainer"] .stButton > button:hover {
+            background: var(--accent-hover) !important;
+            color: #ffffff !important;
+            border-color: var(--accent-strong) !important;
+          }
+          [data-testid="stSidebar"] .stButton > button:hover {
+            background: var(--accent-hover) !important;
+            color: #ffffff !important;
+            border-color: var(--accent-strong) !important;
           }
           [data-testid="stAppViewContainer"] .stButton > button:disabled,
           [data-testid="stSidebar"] .stButton > button:disabled {
-            background: #94a3b8 !important;
+            background: var(--disabled-bg) !important;
             color: #ffffff !important;
-            border-color: #8391a6 !important;
+            border-color: var(--disabled-border) !important;
             opacity: 1 !important;
           }
           [data-testid="stAppViewContainer"] .stButton > button[kind="primary"] {
-            background: #ef4444 !important;
-            border-color: #dc2626 !important;
+            background: var(--accent-strong) !important;
+            border-color: #0f3d5e !important;
             color: #ffffff !important;
           }
           [data-testid="stAppViewContainer"] .stButton > button[kind="primary"]:hover {
-            background: #dc2626 !important;
-            border-color: #b91c1c !important;
+            background: #0f3d5e !important;
+            border-color: #0d324d !important;
           }
           [data-testid="stSidebar"] .stTextInput input,
           [data-testid="stSidebar"] .stNumberInput input,
@@ -138,6 +166,17 @@ def init_page() -> None:
             -webkit-text-fill-color: #111827 !important;
             opacity: 1 !important;
           }
+          [data-testid="stAppViewContainer"] .stNumberInput input {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            -webkit-text-fill-color: #f8fafc !important;
+            border: 1px solid #0f172a !important;
+          }
+          [data-testid="stAppViewContainer"] .stNumberInput button {
+            background: #1e293b !important;
+            color: #f8fafc !important;
+            border-color: #0f172a !important;
+          }
           .kpi {
             font-weight: 650;
             color: var(--ink);
@@ -164,6 +203,10 @@ def init_state() -> None:
         st.session_state.model_cache = []
     if "system_prompt" not in st.session_state:
         st.session_state.system_prompt = DEFAULT_SYSTEM_PROMPT
+    if "last_seen_question_id" not in st.session_state:
+        st.session_state.last_seen_question_id = ""
+    if "pending_autorun" not in st.session_state:
+        st.session_state.pending_autorun = None
 
 
 def ensure_dataset() -> dict[str, Any]:
@@ -197,6 +240,136 @@ def pick_model(models: list[str]) -> str:
     return model
 
 
+def render_copy_button(response_text: str, key: str, disabled: bool = False) -> None:
+    button_id = f"copy_btn_{abs(hash(key))}"
+    status_id = f"copy_status_{abs(hash(f'{key}_status'))}"
+    text_json = json.dumps(response_text or "", ensure_ascii=False).replace("</", "<\\/")
+    is_disabled = disabled or not str(response_text).strip()
+    disabled_attr = "disabled" if is_disabled else ""
+    button_bg = "#94a3b8" if is_disabled else "#1f6faa"
+    button_border = "#7b8ba1" if is_disabled else "#124a73"
+    button_cursor = "not-allowed" if is_disabled else "pointer"
+
+    components.html(
+        f"""
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:8px;">
+          <button id="{button_id}" {disabled_attr}
+            style="
+              background:{button_bg};color:#ffffff;border:1px solid {button_border};
+              border-radius:10px;padding:0.4rem 0.9rem;font-weight:600;cursor:{button_cursor};
+            ">
+            Kopyala
+          </button>
+          <span id="{status_id}" style="font-size:0.85rem;color:#475569;"></span>
+        </div>
+        <script>
+          const button = document.getElementById("{button_id}");
+          const status = document.getElementById("{status_id}");
+          const textToCopy = {text_json};
+
+          async function copyWithNavigatorClipboard(text) {{
+            if (navigator && navigator.clipboard && navigator.clipboard.writeText) {{
+              await navigator.clipboard.writeText(text);
+              return true;
+            }}
+            return false;
+          }}
+
+          async function copyWithParentClipboard(text) {{
+            try {{
+              if (window.parent && window.parent.navigator && window.parent.navigator.clipboard) {{
+                await window.parent.navigator.clipboard.writeText(text);
+                return true;
+              }}
+            }} catch (_err) {{
+              // ignore and fallback
+            }}
+            return false;
+          }}
+
+          function copyWithExecCommand(text) {{
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.setAttribute("readonly", "");
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            let ok = false;
+            try {{
+              ok = document.execCommand("copy");
+            }} catch (_err) {{
+              ok = false;
+            }}
+            document.body.removeChild(textArea);
+            return ok;
+          }}
+
+          if (button) {{
+            button.addEventListener("click", async () => {{
+              if (!textToCopy || !textToCopy.trim()) {{
+                status.textContent = "Kopyalanacak metin yok";
+                return;
+              }}
+              try {{
+                let copied = await copyWithNavigatorClipboard(textToCopy);
+                if (!copied) {{
+                  copied = await copyWithParentClipboard(textToCopy);
+                }}
+                if (!copied) {{
+                  copied = copyWithExecCommand(textToCopy);
+                }}
+                if (!copied) {{
+                  throw new Error("copy_failed");
+                }}
+                status.textContent = "Kopyalandi";
+                setTimeout(() => status.textContent = "", 1500);
+              }} catch (_err) {{
+                status.textContent = "Kopyalama basarisiz";
+              }}
+            }});
+          }}
+        </script>
+        """,
+        height=48,
+    )
+
+
+def is_full_html_document(response_text: str) -> bool:
+    normalized = response_text.lstrip().lower()
+    return normalized.startswith("<!doctype html") or normalized.startswith("<html")
+
+
+def render_response_content(response_text: str, view_mode: str) -> None:
+    if view_mode == "Düz metin":
+        st.text_area(
+            "Yanıt",
+            value=response_text,
+            height=240,
+            disabled=True,
+            label_visibility="collapsed",
+        )
+        return
+
+    if not str(response_text).strip():
+        st.text_area(
+            "Yanıt",
+            value="",
+            height=240,
+            disabled=True,
+            label_visibility="collapsed",
+        )
+        return
+
+    if is_full_html_document(response_text):
+        components.html(response_text, height=420, scrolling=True)
+        return
+
+    st.markdown(response_text, unsafe_allow_html=True)
+
+
 def find_result(
     results: list[dict[str, Any]],
     question_id: str,
@@ -206,16 +379,6 @@ def find_result(
         if item.get("question_id") == question_id and item.get("model") == model:
             return item
     return None
-
-
-def find_latest_question_result(
-    results: list[dict[str, Any]],
-    question_id: str,
-) -> dict[str, Any] | None:
-    candidates = [item for item in results if item.get("question_id") == question_id]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda item: str(item.get("timestamp", "")))
 
 
 def status_to_turkish(status: str) -> str:
@@ -433,6 +596,18 @@ def render() -> None:
     idx = max(0, min(idx, len(questions) - 1))
     st.session_state.question_index = idx
     question = questions[idx]
+    if st.session_state.last_seen_question_id != question["id"]:
+        st.session_state.last_seen_question_id = question["id"]
+        st.session_state.pending_autorun = None
+        if selected_model and not find_result(results, question["id"], selected_model):
+            st.session_state.pending_autorun = {
+                "question_id": question["id"],
+                "model": selected_model,
+            }
+
+    nav_label_a, nav_label_b, nav_label_c = st.columns([1, 2, 1])
+    with nav_label_b:
+        st.caption("Soru no")
 
     nav_a, nav_b, nav_c = st.columns([1, 2, 1])
     with nav_a:
@@ -446,6 +621,7 @@ def render() -> None:
             max_value=len(questions),
             value=idx + 1,
             step=1,
+            label_visibility="collapsed",
         )
         if int(goto) - 1 != idx:
             st.session_state.question_index = int(goto) - 1
@@ -471,32 +647,17 @@ def render() -> None:
         height=220,
         disabled=True,
     )
-    expected_key = f"expected_{question['id']}"
-    if expected_key not in st.session_state:
-        st.session_state[expected_key] = question.get("expected_answer", "")
-    expected_value = st.text_area(
-        "Beklenen cevap (düzenlenebilir)",
-        value=st.session_state[expected_key],
+    st.text_area(
+        "Beklenen cevap",
+        value=question.get("expected_answer", ""),
         height=100,
-        key=f"editor_{question['id']}",
+        disabled=True,
     )
-    st.session_state[expected_key] = expected_value
-    if st.button("Beklenen cevabı kaydet", type="secondary"):
-        try:
-            save_expected_answer(BENCHMARK_PATH, question["id"], expected_value.strip())
-        except Exception as exc:  # noqa: BLE001
-            st.error(f"Kaydedilemedi: {exc}")
-        else:
-            question["expected_answer"] = expected_value.strip()
-            question["expected_source"] = "benchmark_json"
-            question["confidence"] = 1.0 if expected_value.strip() else 0.3
-            payload["questions"][idx] = question
-            st.success("Beklenen cevap data/benchmark.json içinde güncellendi.")
 
     runner = get_runner(st.session_state.session_id)
     snapshot = runner.snapshot()
 
-    run_col, stop_col, timer_col = st.columns([1, 1, 2])
+    run_col, stop_col = st.columns(2)
     with run_col:
         if st.button(
             "Yanıtı Başlat",
@@ -521,82 +682,110 @@ def render() -> None:
         ):
             runner.request_stop()
             st.info("Durdurma isteği gönderildi.")
-    with timer_col:
-        elapsed_s = snapshot["elapsed_ms"] / 1000.0
-        status_label = "Çalışıyor" if snapshot["running"] else "Hazır"
-        st.markdown(
-            f'<div class="bench-card"><span class="kpi">{status_label}</span> '
-            f'<span class="muted">| Son süre: {elapsed_s:.2f}s</span></div>',
-            unsafe_allow_html=True,
-        )
-
     results = handle_completed_run(
         snapshot=snapshot,
         results=results,
         questions=questions,
         question_by_id=question_by_id,
     )
+    pending_autorun = st.session_state.get("pending_autorun")
+    if isinstance(pending_autorun, dict):
+        pending_qid = str(pending_autorun.get("question_id", ""))
+        pending_model = str(pending_autorun.get("model", ""))
+        if pending_qid != question["id"] or pending_model != selected_model:
+            st.session_state.pending_autorun = None
+        elif find_result(results, question["id"], selected_model):
+            st.session_state.pending_autorun = None
+        elif not snapshot["running"]:
+            started = runner.start(
+                model=selected_model,
+                question_id=question["id"],
+                prompt=question["prompt"],
+                system_prompt=st.session_state.system_prompt,
+            )
+            if started:
+                st.session_state.pending_autorun = None
+                st.rerun()
 
-    st.subheader("Gerçek Zamanlı Yanıt")
     active_for_current = (
         snapshot["question_id"] == question["id"]
         and snapshot["model"] == selected_model
         and (snapshot["running"] or snapshot["completed"])
     )
     saved = find_result(results, question["id"], selected_model) if selected_model else None
-    latest_any_model = find_latest_question_result(results, question["id"])
-
+    display_model_name = selected_model or "-"
+    display_latency_s: float | None = None
     if active_for_current:
-        st.caption(f"Seçili model: `{selected_model}`")
+        display_latency_s = snapshot["elapsed_ms"] / 1000.0
+    elif saved:
+        display_latency_s = (saved.get("response_time_ms") or 0.0) / 1000.0
+
+    response_header = f"Seçilen Model {display_model_name} Yanıtı"
+    if display_latency_s is not None:
+        response_header += f" | Yanıt süresi: {display_latency_s:.2f}s"
+    copy_response = ""
+    copy_key = f"resp_none_{question['id']}"
+    copy_disabled = True
+    if active_for_current:
+        copy_response = str(snapshot.get("response", ""))
+        copy_key = f"live_{question['id']}_{selected_model}"
+        copy_disabled = bool(snapshot["running"])
+    elif saved:
+        copy_response = str(saved.get("response", ""))
+        copy_key = f"saved_{question['id']}_{selected_model}"
+        copy_disabled = False
+
+    header_col, copy_col = st.columns([6, 1])
+    with header_col:
+        st.subheader(response_header)
+    with copy_col:
+        render_copy_button(
+            response_text=copy_response,
+            key=copy_key,
+            disabled=copy_disabled,
+        )
+
+    response_view_mode = st.radio(
+        "Yanıt görünümü",
+        options=["Düz metin", "Render (MD/HTML)"],
+        horizontal=True,
+        key=f"response_view_{question['id']}_{selected_model or 'none'}",
+    )
+    if active_for_current:
         live_response = snapshot.get("response", "")
-        st.text_area(
-            "Model cevabı",
-            value=live_response,
-            height=240,
-            disabled=True,
+        render_response_content(
+            response_text=str(live_response),
+            view_mode=response_view_mode,
         )
         if not str(live_response).strip():
             st.warning("Yanıt henüz gelmedi veya boş döndü.")
-        st.caption(f"Yanıt süresi: {snapshot['elapsed_ms']/1000:.2f}s")
         if snapshot.get("error"):
             st.error(snapshot["error"])
         elif snapshot.get("interrupted"):
             st.warning("Çalışma kullanıcı tarafından durduruldu.")
     elif saved:
-        st.caption(f"Seçili model: `{selected_model}`")
         saved_response = saved.get("response", "")
-        st.text_area("Model cevabı", value=saved_response, height=240, disabled=True)
+        render_response_content(
+            response_text=str(saved_response),
+            view_mode=response_view_mode,
+        )
         if not str(saved_response).strip():
             st.warning("Bu kayıtta model yanıtı boş.")
-        latency = (saved.get("response_time_ms") or 0.0) / 1000.0
         st.caption(
-            f"Durum: {status_to_turkish(str(saved.get('status', '')))} | Yanıt süresi: {latency:.2f}s | "
+            f"Durum: {status_to_turkish(str(saved.get('status', '')))} | "
             f"Otomatik skor: {'Evet' if saved.get('auto_scored') else 'Hayır'}"
         )
         if saved.get("reason"):
             st.caption(f"Açıklama: {saved['reason']}")
-    elif latest_any_model:
-        model_name = latest_any_model.get("model", "-")
-        st.warning(
-            "Seçili model için kayıt bulunamadı. Bu soru için en son kayıtlı yanıt gösteriliyor."
-        )
-        st.caption(f"Seçili model: `{model_name}`")
-        latest_response = latest_any_model.get("response", "")
-        st.text_area(
-            "Model cevabı",
-            value=latest_response,
-            height=240,
-            disabled=True,
-        )
-        if not str(latest_response).strip():
-            st.warning("En son kayıtlı yanıt boş.")
-        latency = (latest_any_model.get("response_time_ms") or 0.0) / 1000.0
-        st.caption(
-            f"Durum: {status_to_turkish(str(latest_any_model.get('status', '')))} | Yanıt süresi: {latency:.2f}s | "
-            f"Otomatik skor: {'Evet' if latest_any_model.get('auto_scored') else 'Hayır'}"
-        )
     else:
-        st.info("Bu soru/model için henüz yanıt yok.")
+        render_response_content(
+            response_text="",
+            view_mode=response_view_mode,
+        )
+        if selected_model:
+            st.info("Seçili model için henüz kayıt yok.")
+        else:
+            st.info("Lütfen bir model seçin.")
 
     manual_target = saved
     if active_for_current and snapshot["completed"] and not snapshot["running"]:

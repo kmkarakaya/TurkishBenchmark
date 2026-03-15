@@ -75,7 +75,10 @@ Latest full report is in `results.md`. Current model comparison snapshot:
 ## Current Behavior
 
 - App reads questions only from `data/benchmark.json` (no PDF/DOCX extraction path).
-- Expected answer edits in UI are written back to `data/benchmark.json` by question `id`.
+- Expected answers are shown as read-only in the UI.
 - Model responses stream in real time in the UI.
+- If a new question is opened and the selected model has no saved answer for that question, the app auto-starts the run.
+- Response panel supports two view modes: `Düz metin` and `Render (MD/HTML)`.
+- A `Kopyala` button is available next to the response header (disabled while generation is running or response is empty).
 - Results are auto-saved after each run/decision.
 - Default system prompt enforces Turkish answers.
