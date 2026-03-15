@@ -76,9 +76,12 @@ Latest full report is in `results.md`. Current model comparison snapshot:
 
 - App reads questions only from `data/benchmark.json` (no PDF/DOCX extraction path).
 - Expected answers are shown as read-only in the UI.
+- Main page title is: `Açık Kaynak Dil Modellerinin Türkçe Becerisini Kıyasla`.
 - Model responses stream in real time in the UI.
 - If a new question is opened and the selected model has no saved answer for that question, the app auto-starts the run.
 - Response panel supports two view modes: `Düz metin` and `Render (MD/HTML)`.
 - A `Kopyala` button is available next to the response header (disabled while generation is running or response is empty).
+- Result status is shown with chips (`Durum`, `Otomatik/Manuel Puanlandı`).
+- `Açıklama` chip is shown only for special cases (error/interrupted).
 - Results are auto-saved after each run/decision.
 - Default system prompt enforces Turkish answers.

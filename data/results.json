@@ -162,7 +162,7 @@
     "status": "success",
     "score": 1,
     "response_time_ms": 19037.84,
-    "timestamp": "2026-03-13T20:13:08.468299+00:00",
+    "timestamp": "2026-03-15T18:48:18.724394+00:00",
     "interrupted": false,
     "auto_scored": false,
     "reason": "Kullanıcı onayı"
@@ -338,14 +338,14 @@
   {
     "question_id": "q010",
     "model": "gemma3:4b",
-    "response": "Birinci olur. 😊",
+    "response": "Birinci olur.",
     "status": "fail",
     "score": 0,
-    "response_time_ms": 3541.12,
-    "timestamp": "2026-03-15T15:22:00.306295+00:00",
+    "response_time_ms": 2942.04,
+    "timestamp": "2026-03-15T19:13:07.628686+00:00",
     "interrupted": false,
-    "auto_scored": false,
-    "reason": "Kullanıcı onayı"
+    "auto_scored": true,
+    "reason": "Metin benzerliği: 50.0"
   },
   {
     "question_id": "q011",
@@ -450,7 +450,7 @@
     "status": "success",
     "score": 1,
     "response_time_ms": 16208.86,
-    "timestamp": "2026-03-15T17:38:46.973499+00:00",
+    "timestamp": "2026-03-15T18:41:13.579220+00:00",
     "interrupted": false,
     "auto_scored": false,
     "reason": "Kullanıcı onayı"
@@ -990,9 +990,117 @@
     "status": "success",
     "score": 1,
     "response_time_ms": 39239.16,
-    "timestamp": "2026-03-15T18:31:50.456182+00:00",
+    "timestamp": "2026-03-15T18:32:25.981146+00:00",
     "interrupted": false,
-    "auto_scored": true,
-    "reason": "Metin benzerliği: 90.5"
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q007",
+    "model": "qwen3.5:397b",
+    "response": "Otobüsün hareket noktasından kalktığında içindeki kişi sayısına $x$ diyelim. Durakları sırasıyla takip edelim:\n\n1.  **1. Durak:** 8 kişi bindi.\n    *   Durum: $x + 8$\n2.  **2. Durak:** 6 kişi bindi, 3 kişi indi.\n    *   Durum: $x + 8 + 6 - 3 = x + 11$\n3.  **3. Durak:** 5 kişi bindi, 4 kişi indi.\n    *   Durum: $x + 11 + 5 - 4 = x + 12$\n4.  **4. Durak:** 7 kişi indi.\n    *   Durum: $x + 12 - 7 = x + 5$\n\nSoruda, 4. duraktan sonra otobüste 26 kişi olduğu belirtilmiştir. Bu durumda denklemi şu şekilde kurarız:\n\n$$x + 5 = 26$$\n\nBuradan $x$ değerini bulursak:\n\n$$x = 26 - 5$$\n$$x = 21$$\n\nOtobüs hareket noktasından kalkarken içinde 21 kişi vardır.\n\nDoğru cevap **D) 21** seçeneğidir.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 13183.19,
+    "timestamp": "2026-03-15T18:32:51.746413+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q008",
+    "model": "qwen3.5:397b",
+    "response": "Cevap 45 dakikadır. Gömlekler aynı anda güneşte kuruduğu için gömlek sayısı kuruma süresini değiştirmez. 3 gömlek de 6 gömlek de aynı koşullarda aynı sürede kurur.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 11227.15,
+    "timestamp": "2026-03-15T18:33:44.569085+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q010",
+    "model": "qwen3.5:397b",
+    "response": "İkinci olur. İkinciyi geçersen onun yerine geçersin, yani ikinci sıraya yerleşirsın. Birinci olmak için birinciyi geçmen gerekir.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 7462.68,
+    "timestamp": "2026-03-15T18:34:25.741906+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q011",
+    "model": "qwen3.5:397b",
+    "response": "Doğru cevap **A) Yalnız I** seçeneğidir.\n\n**Açıklama:**\n\n*   **I. Öncül (Doğru):** Amasya Genelgesi (22 Haziran 1919), Milli Mücadele'nin ilk siyasi belgesidir. Temel amacı, vatanın bütünlüğünün ve milletin istiklalini tehlike altında olduğunu halka duyurarak Türk milletini bağımsızlık mücadelesi etrafında birleştirmektir. \"Milletin istiklalini yine milletin azim ve kararı kurtaracaktır\" ilkesi bu amacı yansıtır.\n*   **II. Öncül (Yanlış):** Türkiye Büyük Millet Meclisi (TBMM) 23 Nisan 1920'de açılmıştır. Amasya Genelgesi 1919'da yayımlanıldığı için bu tarihte TBMM bulunmamaktaydı. Dolayısıyla TBMM'ye karşı çıkardığı ayaklanmaların bastırılması bu belgenin amacı olamaz.\n*   **III. Öncül (Yanlış):** Düzenli orduya geçiş süreci, 1920'nin sonlarında (I. İnönü Muharebesi öncesi) gerçekleşmiştir. Amasya Genelgesi aşamasında amaç siyasi bir zemin oluşturmak, kongreler toplamak ve temsil heyeti kurmaktır; askeri yapıyı düzenli orduya dönüştürmek henüz gündemde değildir.\n\nBu nedenle yalnızca I. ifade Amasya Genelgesi'nin öncelikli amaçları arasında yer alır.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 13422.78,
+    "timestamp": "2026-03-15T18:35:18.815145+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q012",
+    "model": "qwen3.5:397b",
+    "response": "Doğru cevap **C** seçeneğidir.\n\n**Açıklama:** Doğu Karadeniz Bölümü'nde tarımda makine kullanımının az olması, iklim koşullarından ziyade **arazinin engebeli olması (yer şekilleri)** nedeniyle gerçekleşir. Diğer seçeneklerin tamamı (yağış rejimi, sıcaklık, nem vb.) doğrudan iklim faktörlerinin tarım üzerindeki etkisine örnektir.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 10043.07,
+    "timestamp": "2026-03-15T18:36:09.632546+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q015",
+    "model": "qwen3.5:397b",
+    "response": "Türkiye'de toplam 81 il vardır.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 4192.35,
+    "timestamp": "2026-03-15T18:36:23.453931+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q017",
+    "model": "qwen3.5:397b",
+    "response": "Şirketin 2023 yılı dördüncü çeyrekteki net kârını hesaplamak için öncelikle dördüncü çeyrekteki ciro miktarını bulmamız gerekmektedir. Adım adım ilerleyelim:\n\n1.  **İkinci Çeyrek Ciro:** Soruda verildiği üzere **6 milyon TL**'dir.\n2.  **Üçüncü Çeyrek Ciro:** İkinci çeyreğe göre %10 düşmüştür.\n    *   Düşüş miktarı: 6 milyon TL × %10 = 0.6 milyon TL\n    *   Üçüncü çeyrek ciro: 6 milyon TL - 0.6 milyon TL = **5.4 milyon TL**\n3.  **Dördüncü Çeyrek Ciro:** Üçüncü çeyreğe göre %25 artmıştır.\n    *   Artış miktarı: 5.4 milyon TL × %25 = 1.35 milyon TL\n    *   Dördüncü çeyrek ciro: 5.4 milyon TL + 1.35 milyon TL = **6.75 milyon TL**\n4.  **Dördüncü Çeyrek Gider:** Soruda verildiği üzere **3.8 milyon TL**'dir.\n5.  **Dördüncü Çeyrek Net Kâr:** Ciro minus Gider.\n    *   Net Kâr: 6.75 milyon TL - 3.8 milyon TL = **2.95 milyon TL**\n\n**Sonuç:** Şirketin 2023 yılı dördüncü çeyrekteki net kârı **2.95 milyon TL**'dir.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 14515.32,
+    "timestamp": "2026-03-15T18:37:22.316605+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q018",
+    "model": "qwen3.5:397b",
+    "response": "Şirketin 2023 yılı dördüncü çeyrekteki net kârını hesaplamak için öncelikle dördüncü çeyrekteki ciro miktarını bulmalı, ardından tüm giderleri (işletme gideri, amortisman ve vergi) bu cirosundan düşmeliyiz.\n\nİşte adım adım hesaplamalar:\n\n**1. Adım: Çeyreklik Ciro Hesaplamaları**\n*   **2. Çeyrek Ciro:** 6 milyon TL (Verilmiş)\n*   **3. Çeyrek Ciro:** 2. çeyreğe göre %10 düşüş.\n    *   $6.000.000 \\times 0,90 = 5.400.000$ TL (5,4 milyon TL)\n*   **4. Çeyrek Ciro:** 3. çeyreğe göre %25 artış.\n    *   $5.400.000 \\times 1,25 = 6.750.000$ TL (6,75 milyon TL)\n\n**2. Adım: Dördüncü Çeyrek Giderlerinin Hesaplanması**\n*   **İşletme Gideri:** Soruda belirtildiği üzere dördüncü çeyrek için **3,8 milyon TL**.\n*   **Amortisman Gideri:** Yıllık 1,2 milyon TL olan amortisman çeyreklere eşit dağıtılmıştır.\n    *   $1.200.000 / 4 = 300.000$ TL (**0,3 milyon TL**)\n*   **Vergi:** Cironun %5'i kadar ödenmektedir.\n    *   $6.750.000 \\times 0,05 = 337.500$ TL (**0,3375 milyon TL**)\n\n**3. Adım: Net Kâr Hesabı**\nNet Kâr = Ciro - (İşletme Gideri + Amortisman + Vergi)\n\n*   **Toplam Gider:** $3.800.000 + 300.000 + 337.500 = 4.437.500$ TL (4,4375 milyon TL)\n*   **Net Kâr:** $6.750.000 - 4.437.500 = 2.312.500$ TL\n\n**Sonuç:**\nŞirketin 2023 yılı dördüncü çeyrekteki net kârı **2,3125 milyon TL**'dir.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 18575.53,
+    "timestamp": "2026-03-15T18:38:46.043618+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
+  },
+  {
+    "question_id": "q009",
+    "model": "qwen3.5:397b",
+    "response": "Soruda manavdan 10 tane **limon** aldığınız belirtiliyor, hiç elma almadınız. Bu yüzden torbada **0 elma** kalmıştır.",
+    "status": "success",
+    "score": 1,
+    "response_time_ms": 7055.23,
+    "timestamp": "2026-03-15T18:42:14.164737+00:00",
+    "interrupted": false,
+    "auto_scored": false,
+    "reason": "Kullanıcı onayı"
   }
 ]

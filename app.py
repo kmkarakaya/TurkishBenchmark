@@ -5,6 +5,7 @@ import os
 import time
 import uuid
 from datetime import datetime, timezone
+from html import escape as html_escape
 from pathlib import Path
 from typing import Any
 
@@ -39,7 +40,7 @@ RESULTS_MD_PATH = ROOT / "results.md"
 
 def init_page() -> None:
     st.set_page_config(
-        page_title="Türkçe LLM Karşılaştırma",
+        page_title="Açık Kaynak Dil Modellerinin Türkçe Becerisini Kıyasla",
         page_icon="📊",
         layout="wide",
     )
@@ -81,6 +82,14 @@ def init_page() -> None:
           .block-container {
             padding-top: 1.5rem;
           }
+          .page-main-title {
+            margin: 0.2rem 0 1.1rem 0;
+            text-align: center;
+            font-size: clamp(2rem, 3.8vw, 3rem);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: var(--ink);
+          }
           .bench-card {
             background: var(--card);
             border: 1px solid #e8ecf1;
@@ -96,11 +105,20 @@ def init_page() -> None:
           [data-testid="stSidebar"] * {
             color: var(--ink) !important;
           }
-          [data-testid="stSidebar"] .stButton > button {
+          [data-testid="stSidebar"] .stButton > button,
+          [data-testid="stSidebar"] .stButton > button[kind],
+          [data-testid="stSidebar"] .stButton > button:focus,
+          [data-testid="stSidebar"] .stButton > button:focus-visible {
             background: var(--accent) !important;
             color: #ffffff !important;
             border: 1px solid var(--accent-strong) !important;
             font-weight: 600 !important;
+            border-radius: 12px !important;
+            min-height: 44px !important;
+            padding: 0.45rem 0.75rem !important;
+            line-height: 1.2 !important;
+            box-shadow: 0 4px 10px rgba(18, 74, 115, 0.22) !important;
+            white-space: nowrap !important;
           }
           [data-testid="stAppViewContainer"] .stButton > button {
             background: var(--accent) !important;
@@ -122,6 +140,30 @@ def init_page() -> None:
             background: var(--accent-hover) !important;
             color: #ffffff !important;
             border-color: var(--accent-strong) !important;
+            transform: translateY(-1px);
+          }
+          [data-testid="stSidebar"] .stButton > button:active {
+            background: var(--accent-strong) !important;
+            color: #ffffff !important;
+            border-color: #0f3d5e !important;
+          }
+          [data-testid="stSidebar"] .stButton > button:focus,
+          [data-testid="stSidebar"] .stButton > button:focus-visible {
+            outline: none !important;
+            box-shadow: 0 0 0 3px rgba(31, 111, 170, 0.25) !important;
+          }
+          [data-testid="stSidebar"] .stButton > button p,
+          [data-testid="stSidebar"] .stButton > button span,
+          [data-testid="stSidebar"] .stButton > button div {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
+          }
+          [data-testid="stSidebar"] .stButton [data-testid="stMarkdownContainer"],
+          [data-testid="stSidebar"] .stButton [data-testid="stMarkdownContainer"] *,
+          [data-testid="stSidebar"] .stButton [data-testid="stMarkdownContainer"] p,
+          [data-testid="stSidebar"] .stButton [data-testid="stMarkdownContainer"] span {
+            color: #ffffff !important;
+            -webkit-text-fill-color: #ffffff !important;
           }
           [data-testid="stAppViewContainer"] .stButton > button:disabled,
           [data-testid="stSidebar"] .stButton > button:disabled {
@@ -154,6 +196,20 @@ def init_page() -> None:
           [data-testid="stAppViewContainer"] span {
             color: var(--ink) !important;
           }
+          [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"],
+          [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] * {
+            color: var(--ink) !important;
+            -webkit-text-fill-color: var(--ink) !important;
+          }
+          [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] code,
+          [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] code * {
+            background: #0f172a !important;
+            color: #e2e8f0 !important;
+            -webkit-text-fill-color: #e2e8f0 !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 6px !important;
+            padding: 0.1rem 0.35rem !important;
+          }
           [data-testid="stAppViewContainer"] .stTextArea textarea {
             background: #ffffff !important;
             color: #111827 !important;
@@ -177,6 +233,128 @@ def init_page() -> None:
             color: #f8fafc !important;
             border-color: #0f172a !important;
           }
+          .meta-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0.2rem 0 0.55rem 0;
+          }
+          .meta-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            border: 1px solid;
+            font-size: 0.88rem;
+            font-weight: 700;
+            line-height: 1.2;
+          }
+          [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] .meta-chip,
+          [data-testid="stAppViewContainer"] [data-testid="stMarkdownContainer"] .meta-chip * {
+            -webkit-text-fill-color: inherit !important;
+          }
+          .meta-id {
+            background: #e0ecff;
+            border-color: #bfd6ff;
+            color: #1e3a8a !important;
+          }
+          .meta-category {
+            background: #e6f8f2;
+            border-color: #b8eadb;
+            color: #0f766e !important;
+          }
+          .meta-model {
+            background: #e9eefc;
+            border-color: #c8d6ff;
+            color: #4338ca !important;
+          }
+          .meta-hardness {
+            background: #fff7e6;
+            border-color: #ffd8a8;
+            color: #9a3412 !important;
+          }
+          .meta-note {
+            margin: 0.15rem 0 0.7rem 0;
+            padding: 0.65rem 0.8rem;
+            border-radius: 12px;
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+          }
+          .meta-note-label {
+            display: inline-block;
+            margin-right: 0.35rem;
+            font-weight: 700;
+            color: #1d4ed8 !important;
+          }
+          .meta-note-text {
+            color: #1e293b !important;
+          }
+          .status-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 0.55rem 0 0.4rem 0;
+          }
+          .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 999px;
+            border: 1px solid;
+            font-size: 0.85rem;
+            font-weight: 700;
+            line-height: 1.2;
+          }
+          .status-success {
+            background: #e8f8ef;
+            border-color: #b7ebce;
+            color: #166534 !important;
+          }
+          .status-fail {
+            background: #feeceb;
+            border-color: #fbcac7;
+            color: #9f1239 !important;
+          }
+          .status-review {
+            background: #fff7e6;
+            border-color: #ffd8a8;
+            color: #9a3412 !important;
+          }
+          .status-neutral {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #3730a3 !important;
+          }
+          .status-auto-yes {
+            background: #e6fffa;
+            border-color: #99f6e4;
+            color: #115e59 !important;
+          }
+          .status-auto-no {
+            background: #fff7e6;
+            border-color: #fed7aa;
+            color: #9a3412 !important;
+          }
+          .status-reason {
+            background: #eef2ff;
+            border-color: #c7d2fe;
+            color: #3730a3 !important;
+            max-width: 440px;
+          }
+          .status-reason-label {
+            font-weight: 800;
+            color: #312e81 !important;
+            flex-shrink: 0;
+          }
+          .status-reason-text {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #3730a3 !important;
+          }
           .kpi {
             font-weight: 650;
             color: var(--ink);
@@ -199,10 +377,14 @@ def init_state() -> None:
         st.session_state.selected_model = ""
     if "last_persisted_run_id" not in st.session_state:
         st.session_state.last_persisted_run_id = 0
+    if "runtime_api_key" not in st.session_state:
+        st.session_state.runtime_api_key = ""
     if "model_cache" not in st.session_state:
         st.session_state.model_cache = []
     if "system_prompt" not in st.session_state:
         st.session_state.system_prompt = DEFAULT_SYSTEM_PROMPT
+    if "response_view_mode_pref" not in st.session_state:
+        st.session_state.response_view_mode_pref = "Düz metin"
     if "last_seen_question_id" not in st.session_state:
         st.session_state.last_seen_question_id = ""
     if "pending_autorun" not in st.session_state:
@@ -238,6 +420,37 @@ def pick_model(models: list[str]) -> str:
     model = manual.strip() or selected.strip()
     st.session_state.selected_model = model
     return model
+
+
+def render_question_meta(question: dict[str, Any], selected_model: str) -> None:
+    question_id = html_escape(str(question.get("id", "-")))
+    category = html_escape(str(question.get("category", "GENEL")))
+    model = html_escape(selected_model or "-")
+    hardness = html_escape(str(question.get("hardness_level", "")).strip() or "-")
+    why_prepared = str(question.get("why_prepared", "")).strip()
+
+    st.markdown(
+        f"""
+        <div class="meta-wrap">
+          <span class="meta-chip meta-id">Soru: {question_id}</span>
+          <span class="meta-chip meta-category">Kategori: {category}</span>
+          <span class="meta-chip meta-model">Seçili model: {model}</span>
+          <span class="meta-chip meta-hardness">Zorluk: {hardness}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if why_prepared:
+        st.markdown(
+            f"""
+            <div class="meta-note">
+              <span class="meta-note-label">Neden hazırlandı:</span>
+              <span class="meta-note-text">{html_escape(why_prepared)}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
 
 def render_copy_button(response_text: str, key: str, disabled: bool = False) -> None:
@@ -388,6 +601,55 @@ def status_to_turkish(status: str) -> str:
         "manual_review": "İnceleme",
     }
     return mapping.get(status, status)
+
+
+def status_chip_class(status: str) -> str:
+    mapping = {
+        "success": "status-success",
+        "fail": "status-fail",
+        "manual_review": "status-review",
+    }
+    return mapping.get(status, "status-neutral")
+
+
+def render_result_meta(result: dict[str, Any]) -> None:
+    raw_status = str(result.get("status", ""))
+    status_label = html_escape(status_to_turkish(raw_status) or "-")
+    status_class = status_chip_class(raw_status)
+    auto_scored = bool(result.get("auto_scored"))
+    auto_label = "Otomatik Puanlandı" if auto_scored else "Manuel Puanlandı"
+    auto_class = "status-auto-yes" if auto_scored else "status-auto-no"
+    reason = str(result.get("reason", "")).strip()
+    reason_chip_html = ""
+    reason_lower = reason.lower()
+    show_reason = (
+        bool(reason)
+        and (
+            "hata" in reason_lower
+            or "error" in reason_lower
+            or "durdur" in reason_lower
+            or "interrupt" in reason_lower
+        )
+    )
+    if show_reason:
+        reason_safe = html_escape(reason)
+        reason_chip_html = (
+            f'<span class="status-chip status-reason" title="{reason_safe}">'
+            f'<span class="status-reason-label">Açıklama:</span>'
+            f'<span class="status-reason-text">{reason_safe}</span>'
+            "</span>"
+        )
+
+    st.markdown(
+        f"""
+        <div class="status-wrap">
+          <span class="status-chip {status_class}">Durum: {status_label}</span>
+          <span class="status-chip {auto_class}">{auto_label}</span>
+          {reason_chip_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def persist_result_record(
@@ -546,17 +808,45 @@ def render() -> None:
     init_page()
     init_state()
 
-    st.title("Türkçe LLM Karşılaştırma")
-    st.caption("Gerçek zamanlı soru-cevap, otomatik skor ve model karşılaştırma")
+    st.markdown(
+        '<div class="page-main-title">Açık Kaynak Dil Modellerinin Türkçe Becerisini Kıyasla</div>',
+        unsafe_allow_html=True,
+    )
+
+    api_key = os.getenv("OLLAMA_API_KEY", "").strip()
+    runtime_api_key = str(st.session_state.runtime_api_key or "").strip()
+    if not api_key and runtime_api_key:
+        os.environ["OLLAMA_API_KEY"] = runtime_api_key
+        api_key = runtime_api_key
+
+    if not api_key:
+        st.warning(
+            "Devam edebilmek için önce `OLLAMA_API_KEY` girmeniz gerekiyor. "
+            "Anahtar maskeli olarak alınır ve sadece mevcut oturumda kullanılır."
+        )
+        entered_api_key = st.text_input(
+            "OLLAMA_API_KEY",
+            type="password",
+            placeholder="sk-...",
+        )
+        if st.button("API Anahtarını Kaydet ve Devam Et", type="primary"):
+            normalized = entered_api_key.strip()
+            if not normalized:
+                st.error("Lütfen geçerli bir API anahtarı girin.")
+            else:
+                st.session_state.runtime_api_key = normalized
+                os.environ["OLLAMA_API_KEY"] = normalized
+                st.rerun()
+        st.stop()
 
     with st.sidebar:
         st.header("Ayarlar")
         api_ok = bool(os.getenv("OLLAMA_API_KEY", "").strip())
         st.write(f"API anahtarı durumu: {'✅ Hazır' if api_ok else '❌ Eksik'}")
-        if st.button("Soru setini yenile (data/benchmark.json)", use_container_width=True):
+        if st.button("Soru Setini Yenile", use_container_width=True):
             st.rerun()
 
-        if st.button("Model listesini yenile", use_container_width=True):
+        if st.button("Modelleri Yenile", use_container_width=True):
             try:
                 refresh_models()
                 st.success("Model listesi güncellendi.")
@@ -605,10 +895,6 @@ def render() -> None:
                 "model": selected_model,
             }
 
-    nav_label_a, nav_label_b, nav_label_c = st.columns([1, 2, 1])
-    with nav_label_b:
-        st.caption("Soru no")
-
     nav_a, nav_b, nav_c = st.columns([1, 2, 1])
     with nav_a:
         if st.button("◀ Önceki", use_container_width=True, disabled=idx == 0):
@@ -631,16 +917,7 @@ def render() -> None:
             st.session_state.question_index = min(len(questions) - 1, idx + 1)
             st.rerun()
 
-    st.markdown(
-        f"**{question['id']}**  |  **Kategori:** {question.get('category', 'GENEL')}  "
-        f"|  **Seçili model:** `{selected_model or '-'}`"
-    )
-    hardness = question.get("hardness_level", "").strip()
-    if hardness:
-        st.caption(f"Zorluk: {hardness}")
-    why_prepared = question.get("why_prepared", "").strip()
-    if why_prepared:
-        st.caption(f"Neden hazırlandı: {why_prepared}")
+    render_question_meta(question=question, selected_model=selected_model)
     st.text_area(
         "Soru metni",
         value=question["prompt"],
@@ -665,6 +942,8 @@ def render() -> None:
             use_container_width=True,
             disabled=not selected_model or snapshot["running"],
         ):
+            # Reset persistence marker for new run to avoid stale run-id skips.
+            st.session_state.last_persisted_run_id = 0
             ok = runner.start(
                 model=selected_model,
                 question_id=question["id"],
@@ -697,6 +976,8 @@ def render() -> None:
         elif find_result(results, question["id"], selected_model):
             st.session_state.pending_autorun = None
         elif not snapshot["running"]:
+            # Reset persistence marker for new auto-run as well.
+            st.session_state.last_persisted_run_id = 0
             started = runner.start(
                 model=selected_model,
                 question_id=question["id"],
@@ -745,12 +1026,24 @@ def render() -> None:
             disabled=copy_disabled,
         )
 
-    response_view_mode = st.radio(
-        "Yanıt görünümü",
-        options=["Düz metin", "Render (MD/HTML)"],
-        horizontal=True,
-        key=f"response_view_{question['id']}_{selected_model or 'none'}",
+    response_view_options = ["Düz metin", "Render (MD/HTML)"]
+    response_view_default_index = (
+        response_view_options.index(st.session_state.response_view_mode_pref)
+        if st.session_state.response_view_mode_pref in response_view_options
+        else 0
     )
+    view_label_col, view_radio_col = st.columns([1, 4])
+    with view_label_col:
+        st.markdown('<div style="padding-top:0.45rem;font-weight:600;">Yanıt görünümü</div>', unsafe_allow_html=True)
+    with view_radio_col:
+        response_view_mode = st.radio(
+            "Yanıt görünümü",
+            options=response_view_options,
+            index=response_view_default_index,
+            horizontal=True,
+            label_visibility="collapsed",
+        )
+    st.session_state.response_view_mode_pref = response_view_mode
     if active_for_current:
         live_response = snapshot.get("response", "")
         render_response_content(
@@ -763,6 +1056,8 @@ def render() -> None:
             st.error(snapshot["error"])
         elif snapshot.get("interrupted"):
             st.warning("Çalışma kullanıcı tarafından durduruldu.")
+        if snapshot.get("completed") and not snapshot.get("running") and saved:
+            render_result_meta(saved)
     elif saved:
         saved_response = saved.get("response", "")
         render_response_content(
@@ -771,12 +1066,7 @@ def render() -> None:
         )
         if not str(saved_response).strip():
             st.warning("Bu kayıtta model yanıtı boş.")
-        st.caption(
-            f"Durum: {status_to_turkish(str(saved.get('status', '')))} | "
-            f"Otomatik skor: {'Evet' if saved.get('auto_scored') else 'Hayır'}"
-        )
-        if saved.get("reason"):
-            st.caption(f"Açıklama: {saved['reason']}")
+        render_result_meta(saved)
     else:
         render_response_content(
             response_text="",
