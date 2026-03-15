@@ -885,6 +885,11 @@ def render() -> None:
         selected_model = pick_model(st.session_state.model_cache)
         st.caption(f"Toplam soru: {len(questions)}")
         st.caption(f"Test edilen model sayısı: {len({r.get('model') for r in results if r.get('model')})}")
+        st.markdown("---")
+        st.markdown(
+            "Kaynak kod: "
+            "[github.com/kmkarakaya/TurkishBenchmark](https://github.com/kmkarakaya/TurkishBenchmark)"
+        )
 
     idx = st.session_state.question_index
     idx = max(0, min(idx, len(questions) - 1))
