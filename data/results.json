@@ -806,11 +806,11 @@
   {
     "question_id": "q001",
     "model": "gemma3:27b",
-    "response": "Doğru sıralama **B) Sebze, semiz, sergi, sevgi, sevinç, seyir** şeklindedir. \n\nSözlükte kelimeler genellikle şu sıraya göre sıralanır:\n\n1.  İlk harfe göre\n2.  Aynı harf varsa, ikinci harfe göre\n3.  Bu şekilde devam eder.\n\nBu kurala göre baktığımızda:\n\n*   **Sebze** en başta gelir.\n*   **Semiz** ikinci sırada gelir.\n*   **Sergi** üçüncü sırada gelir.\n*   **Sevgi** dördüncü sırada gelir.\n*   **Sevinç** beşinci sırada gelir.\n*   **Seyir** son sırada gelir.",
+    "response": "Doğru sıralama **B) Sebze, semiz, sergi, sevgi, sevinç, seyir** şeklindedir.\n\nSözcükleri alfabetik sıraya göre dizelim:\n\n1.  **Sebze**\n2.  **Semiz**\n3.  **Sergi**\n4.  **Sevgi**\n5.  **Sevinç**\n6.  **Seyir**\n",
     "status": "success",
     "score": 1,
-    "response_time_ms": 7187.65,
-    "timestamp": "2026-03-15T18:18:24.177306+00:00",
+    "response_time_ms": 3293.53,
+    "timestamp": "2026-03-15T19:26:44.005640+00:00",
     "interrupted": false,
     "auto_scored": false,
     "reason": "Kullanıcı onayı"

@@ -1,18 +1,18 @@
 # Turkish LLM Benchmark Results
-_Güncellendi: 2026-03-15T22:13:07+03:00_
+_Güncellendi: 2026-03-15T22:26:44+03:00_
 
 ## Model Karşılaştırma
 | Model | Accuracy % | Success/Scored | Median | Mean | P95 | Latency Score |
 |---|---:|---:|---:|---:|---:|---:|
 | qwen3.5:397b | 100.0 | 23/23 | 13.18s | 15.01s | 37.47s | 24.1 |
-| gemma3:27b | 82.6 | 19/23 | 6.38s | 6.67s | 10.77s | 49.8 |
+| gemma3:27b | 82.6 | 19/23 | 6.02s | 6.50s | 10.77s | 52.8 |
 | gemma3:12b | 69.6 | 16/23 | 3.18s | 4.46s | 6.60s | 100.0 |
 | gemma3:4b | 34.8 | 8/23 | 3.43s | 4.14s | 9.38s | 92.8 |
 
 ## Soru Bazlı Sonuç Matrisi
 | Soru ID | Kategori | gemma3:12b | gemma3:27b | gemma3:4b | qwen3.5:397b |
 |---|---|---|---|---|---|
-| q001 | Türkçe | ✅ 2.65s | ✅ 7.19s | ✅ 3.43s | ✅ 11.71s |
+| q001 | Türkçe | ✅ 2.65s | ✅ 3.29s | ✅ 3.43s | ✅ 11.71s |
 | q002 | Türkçe | ✅ 2.36s | ✅ 3.98s | ✅ 3.12s | ✅ 5.09s |
 | q003 | Türkçe | ✅ 2.55s | ✅ 6.47s | ✅ 3.46s | ✅ 14.52s |
 | q004 | Türkçe | ✅ 2.52s | ✅ 3.57s | ✅ 3.25s | ✅ 21.58s |
