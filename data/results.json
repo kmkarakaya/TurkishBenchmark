@@ -986,13 +986,13 @@
   {
     "question_id": "q006",
     "model": "qwen3.5:397b",
-    "response": "Ayşe ve Ali, hava sıcaklığı endişesi nedeniyle **şehir dışına bir gezi yapmamak** üzere karar verdiler. Bunun yerine sahilde vakit geçirmeyi tercih ettiler.",
+    "response": "Ayşe ve Ali, Ali'nin konuşmanın başında önerdiği **şehir dışına bir gezi yapmamak** üzere karar verdiler. Ayşe, hava sıcaklığı konusunda endişeli olduğunu belirtip sahilde vakit geçirmeyi önerdi ve Ali de bu fikre katıldı. Bu nedenle şehir dışına çıkma planından vazgeçtiler.",
     "status": "success",
     "score": 1,
-    "response_time_ms": 41475.85,
-    "timestamp": "2026-03-15T18:31:06.366102+00:00",
+    "response_time_ms": 39239.16,
+    "timestamp": "2026-03-15T18:31:50.456182+00:00",
     "interrupted": false,
-    "auto_scored": false,
-    "reason": "Kullanıcı onayı"
+    "auto_scored": true,
+    "reason": "Metin benzerliği: 90.5"
   }
 ]
