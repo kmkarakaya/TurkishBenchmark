@@ -16,10 +16,14 @@ def wait_until_completed(live_runner: LiveRunner, timeout: float = 2.0) -> dict[
 
 def test_runner_collects_two_model_responses(monkeypatch) -> None:
     monkeypatch.setattr("runner.get_client", lambda: object())
+    response_parts = {
+        "gemma3:4b": ["Mer", "haba"],
+        "qwen3:8b": ["Dün", "ya"],
+    }
 
     def fake_stream_chat(*, client, model, prompt, system_prompt):  # type: ignore[no-untyped-def]
         del client, prompt, system_prompt
-        for part in {"gemma3:4b": ["Mer", "haba"], "qwen3:8b": ["Dün", "ya"]}[model]:
+        for part in response_parts[model]:
             time.sleep(0.01)
             yield part
 

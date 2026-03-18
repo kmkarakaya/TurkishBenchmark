@@ -117,10 +117,9 @@ class LiveRunner:
             entry.running = False
             entry.completed = True
             entry.ended_at = end_time
-            self.state.running = any(item.running for item in self.state.entries.values())
-            self.state.completed = bool(self.state.entries) and all(
-                item.completed for item in self.state.entries.values()
-            )
+            entries = list(self.state.entries.values())
+            self.state.running = any(item.running for item in entries)
+            self.state.completed = bool(entries) and all(item.completed for item in entries)
 
     def snapshot(self) -> dict[str, Any]:
         with self.state.lock:

@@ -452,10 +452,10 @@ def pick_models(models: list[str]) -> list[str]:
     )
     model_2 = manual_2.strip() or selected_2.strip()
 
+    duplicate_selection = bool(model_1 and model_2 and model_2 == model_1)
     selected_models = normalize_selected_models(model_1, model_2)
-    if model_2 and model_2 == model_1:
+    if duplicate_selection:
         st.warning("Karşılaştırma için iki farklı model seçin.")
-        selected_models = normalize_selected_models(model_1)
 
     st.session_state.selected_models = selected_models
     st.session_state.selected_model = selected_models[0] if selected_models else ""
@@ -1159,7 +1159,7 @@ def render() -> None:
             if active_entry and active_entry.get("completed"):
                 manual_target = find_result(results, question["id"], model) if model else manual_target
 
-            st.markdown("**Manuel Karar**")
+            st.subheader("Manuel Karar")
             c1, c2, c3 = st.columns(3)
             can_override = bool(model and manual_target)
             if c1.button(
