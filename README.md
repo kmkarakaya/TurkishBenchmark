@@ -103,11 +103,13 @@ Latest full report is in `results.md`. Current model comparison snapshot:
 
 - Questions are loaded only from `data/benchmark.json`.
 - If `OLLAMA_API_KEY` is missing at startup, the app shows a masked input and blocks execution until a key is provided.
-- The selected model and active question are processed one-by-one with live streaming output.
-- If you move to a question that has no saved record for the selected model, the app auto-starts that run.
+- You can benchmark one model or compare two different models side by side for the same question.
+- Selected models and the active question are processed together with live streaming output per model.
+- If you move to a question that has no saved record for the selected model(s), the app auto-starts those missing runs.
 - The expected answer is displayed as read-only.
 - The response area supports two modes: `Duz metin` and `Render (MD/HTML)`.
-- If the selected model has no saved record for the current question, the response box is shown empty.
+- When two models are selected, their responses and manual evaluation controls are shown side by side.
+- If a selected model has no saved record for the current question, that response box is shown empty.
 - `Kopyala` is available next to the response header and is disabled while generation is running or when there is no text to copy.
 - `Durdur` sends a stop request; interrupted runs are saved as `manual_review`.
 - Automatic scoring is applied on completed runs, and manual override buttons (`Basarili`, `Basarisiz`, `Inceleme`) can update the saved result.

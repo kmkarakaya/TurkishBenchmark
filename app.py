@@ -375,8 +375,11 @@ def init_state() -> None:
         st.session_state.question_index = 0
     if "selected_model" not in st.session_state:
         st.session_state.selected_model = ""
-    if "last_persisted_run_id" not in st.session_state:
-        st.session_state.last_persisted_run_id = 0
+    if "selected_models" not in st.session_state:
+        initial_model = str(st.session_state.selected_model or "").strip()
+        st.session_state.selected_models = [initial_model] if initial_model else []
+    if "persisted_run_entry_keys" not in st.session_state:
+        st.session_state.persisted_run_entry_keys = []
     if "runtime_api_key" not in st.session_state:
         st.session_state.runtime_api_key = ""
     if "model_cache" not in st.session_state:
@@ -402,30 +405,67 @@ def refresh_models() -> list[str]:
     return models
 
 
-def pick_model(models: list[str]) -> str:
-    options = [""] + models
-    if st.session_state.selected_model and st.session_state.selected_model not in options:
-        options.append(st.session_state.selected_model)
+def normalize_selected_models(*values: str) -> list[str]:
+    normalized: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        model = str(value).strip()
+        if not model or model in seen:
+            continue
+        normalized.append(model)
+        seen.add(model)
+    return normalized[:2]
 
-    selected = st.selectbox(
-        "Ollama Cloud LLM seç",
+
+def pick_models(models: list[str]) -> list[str]:
+    options = [""] + models
+    existing = normalize_selected_models(*st.session_state.selected_models, st.session_state.selected_model)
+    selected_model_1 = existing[0] if existing else ""
+    selected_model_2 = existing[1] if len(existing) > 1 else ""
+
+    for model in existing:
+        if model and model not in options:
+            options.append(model)
+
+    selected_1 = st.selectbox(
+        "Ollama Cloud LLM 1 seç",
         options=options,
-        index=options.index(st.session_state.selected_model)
-        if st.session_state.selected_model in options
-        else 0,
+        index=options.index(selected_model_1) if selected_model_1 in options else 0,
         help="Model listesinden seçebilir veya alttan model adını manuel girebilirsiniz.",
     )
+    manual_1 = st.text_input("Model 1 adı (manuel)", value=selected_1 or selected_model_1)
+    model_1 = manual_1.strip() or selected_1.strip()
 
-    manual = st.text_input("Model adı (manuel)", value=selected or st.session_state.selected_model)
-    model = manual.strip() or selected.strip()
-    st.session_state.selected_model = model
-    return model
+    second_options = [""] + [item for item in options[1:] if item != model_1]
+    if selected_model_2 and selected_model_2 not in second_options and selected_model_2 != model_1:
+        second_options.append(selected_model_2)
+
+    selected_2 = st.selectbox(
+        "Ollama Cloud LLM 2 seç (isteğe bağlı)",
+        options=second_options,
+        index=second_options.index(selected_model_2) if selected_model_2 in second_options else 0,
+        help="Karşılaştırma için ikinci bir model seçin. Boş bırakırsanız tek model çalışır.",
+    )
+    manual_2 = st.text_input(
+        "Model 2 adı (manuel)",
+        value=selected_2 or (selected_model_2 if selected_model_2 != model_1 else ""),
+    )
+    model_2 = manual_2.strip() or selected_2.strip()
+
+    duplicate_selection = bool(model_1 and model_2 and model_2 == model_1)
+    selected_models = normalize_selected_models(model_1, model_2)
+    if duplicate_selection:
+        st.warning("Karşılaştırma için iki farklı model seçin.")
+
+    st.session_state.selected_models = selected_models
+    st.session_state.selected_model = selected_models[0] if selected_models else ""
+    return selected_models
 
 
-def render_question_meta(question: dict[str, Any], selected_model: str) -> None:
+def render_question_meta(question: dict[str, Any], selected_models: list[str]) -> None:
     question_id = html_escape(str(question.get("id", "-")))
     category = html_escape(str(question.get("category", "GENEL")))
-    model = html_escape(selected_model or "-")
+    model = html_escape(" | ".join(selected_models) or "-")
     hardness = html_escape(str(question.get("hardness_level", "")).strip() or "-")
     why_prepared = str(question.get("why_prepared", "")).strip()
 
@@ -555,7 +595,7 @@ def is_full_html_document(response_text: str) -> bool:
     return normalized.startswith("<!doctype html") or normalized.startswith("<html")
 
 
-def render_response_content(response_text: str, view_mode: str) -> None:
+def render_response_content(response_text: str, view_mode: str, key: str) -> None:
     if view_mode == "Düz metin":
         st.text_area(
             "Yanıt",
@@ -563,6 +603,7 @@ def render_response_content(response_text: str, view_mode: str) -> None:
             height=240,
             disabled=True,
             label_visibility="collapsed",
+            key=key,
         )
         return
 
@@ -573,6 +614,7 @@ def render_response_content(response_text: str, view_mode: str) -> None:
             height=240,
             disabled=True,
             label_visibility="collapsed",
+            key=key,
         )
         return
 
@@ -663,7 +705,35 @@ def persist_result_record(
     return updated
 
 
-def handle_completed_run(
+def find_snapshot_entry(snapshot: dict[str, Any], question_id: str, model: str) -> dict[str, Any] | None:
+    if snapshot.get("question_id") != question_id:
+        return None
+    for entry in snapshot.get("entries", []):
+        if entry.get("model") == model:
+            return entry
+    return None
+
+
+def build_verdict(entry: dict[str, Any], expected_answer: str) -> dict[str, Any]:
+    response = str(entry.get("response", ""))
+    if entry.get("interrupted"):
+        return {
+            "status": "manual_review",
+            "score": None,
+            "auto_scored": False,
+            "reason": "Kullanıcı tarafından durduruldu.",
+        }
+    if entry.get("error"):
+        return {
+            "status": "manual_review",
+            "score": None,
+            "auto_scored": False,
+            "reason": f"Hata: {entry['error']}",
+        }
+    return evaluate_response(expected_answer=expected_answer, response=response)
+
+
+def handle_completed_runs(
     snapshot: dict[str, Any],
     results: list[dict[str, Any]],
     questions: list[dict[str, Any]],
@@ -672,46 +742,37 @@ def handle_completed_run(
     run_id = snapshot["run_id"]
     if run_id == 0:
         return results
-    if st.session_state.last_persisted_run_id == run_id:
-        return results
-    if not snapshot["completed"]:
+    if not snapshot.get("entries"):
         return results
 
     question = question_by_id.get(snapshot["question_id"])
     expected_answer = (question or {}).get("expected_answer", "")
-    response = snapshot.get("response", "")
+    persisted_keys = set(st.session_state.persisted_run_entry_keys)
 
-    if snapshot.get("interrupted"):
-        verdict = {
-            "status": "manual_review",
-            "score": None,
-            "auto_scored": False,
-            "reason": "Kullanıcı tarafından durduruldu.",
+    for entry in snapshot.get("entries", []):
+        if not entry.get("completed"):
+            continue
+        persist_key = f"{run_id}:{snapshot['question_id']}:{entry.get('model', '')}"
+        if persist_key in persisted_keys:
+            continue
+        verdict = build_verdict(entry, expected_answer)
+        record = {
+            "question_id": snapshot["question_id"],
+            "model": entry["model"],
+            "response": str(entry.get("response", "")),
+            "status": verdict["status"],
+            "score": verdict["score"],
+            "response_time_ms": round(float(entry.get("elapsed_ms", 0.0)), 2),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "interrupted": bool(entry.get("interrupted")),
+            "auto_scored": bool(verdict.get("auto_scored")),
+            "reason": verdict.get("reason", ""),
         }
-    elif snapshot.get("error"):
-        verdict = {
-            "status": "manual_review",
-            "score": None,
-            "auto_scored": False,
-            "reason": f"Hata: {snapshot['error']}",
-        }
-    else:
-        verdict = evaluate_response(expected_answer=expected_answer, response=response)
+        results = persist_result_record(results, questions, record)
+        persisted_keys.add(persist_key)
 
-    record = {
-        "question_id": snapshot["question_id"],
-        "model": snapshot["model"],
-        "response": response,
-        "status": verdict["status"],
-        "score": verdict["score"],
-        "response_time_ms": round(snapshot["elapsed_ms"], 2),
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "interrupted": bool(snapshot.get("interrupted")),
-        "auto_scored": bool(verdict.get("auto_scored")),
-        "reason": verdict.get("reason", ""),
-    }
-    st.session_state.last_persisted_run_id = run_id
-    return persist_result_record(results, questions, record)
+    st.session_state.persisted_run_entry_keys = sorted(persisted_keys)
+    return results
 
 
 def render_metrics_panel(results: list[dict[str, Any]]) -> None:
@@ -882,7 +943,7 @@ def render() -> None:
                 refresh_models()
             except Exception:
                 st.session_state.model_cache = []
-        selected_model = pick_model(st.session_state.model_cache)
+        selected_models = pick_models(st.session_state.model_cache)
         st.caption(f"Toplam soru: {len(questions)}")
         st.caption(f"Test edilen model sayısı: {len({r.get('model') for r in results if r.get('model')})}")
         st.markdown("---")
@@ -898,10 +959,13 @@ def render() -> None:
     if st.session_state.last_seen_question_id != question["id"]:
         st.session_state.last_seen_question_id = question["id"]
         st.session_state.pending_autorun = None
-        if selected_model and not find_result(results, question["id"], selected_model):
+        missing_models = [
+            model for model in selected_models if not find_result(results, question["id"], model)
+        ]
+        if missing_models:
             st.session_state.pending_autorun = {
                 "question_id": question["id"],
-                "model": selected_model,
+                "models": missing_models,
             }
 
     nav_a, nav_b, nav_c = st.columns([1, 2, 1])
@@ -926,7 +990,7 @@ def render() -> None:
             st.session_state.question_index = min(len(questions) - 1, idx + 1)
             st.rerun()
 
-    render_question_meta(question=question, selected_model=selected_model)
+    render_question_meta(question=question, selected_models=selected_models)
     st.text_area(
         "Soru metni",
         value=question["prompt"],
@@ -946,15 +1010,14 @@ def render() -> None:
     run_col, stop_col = st.columns(2)
     with run_col:
         if st.button(
-            "Yanıtı Başlat",
+            "Yanıtları Başlat" if len(selected_models) > 1 else "Yanıtı Başlat",
             type="primary",
             use_container_width=True,
-            disabled=not selected_model or snapshot["running"],
+            disabled=not selected_models or snapshot["running"],
         ):
-            # Reset persistence marker for new run to avoid stale run-id skips.
-            st.session_state.last_persisted_run_id = 0
+            st.session_state.persisted_run_entry_keys = []
             ok = runner.start(
-                model=selected_model,
+                models=selected_models,
                 question_id=question["id"],
                 prompt=question["prompt"],
                 system_prompt=st.session_state.system_prompt,
@@ -970,7 +1033,7 @@ def render() -> None:
         ):
             runner.request_stop()
             st.info("Durdurma isteği gönderildi.")
-    results = handle_completed_run(
+    results = handle_completed_runs(
         snapshot=snapshot,
         results=results,
         questions=questions,
@@ -979,61 +1042,26 @@ def render() -> None:
     pending_autorun = st.session_state.get("pending_autorun")
     if isinstance(pending_autorun, dict):
         pending_qid = str(pending_autorun.get("question_id", ""))
-        pending_model = str(pending_autorun.get("model", ""))
-        if pending_qid != question["id"] or pending_model != selected_model:
+        pending_models = normalize_selected_models(*pending_autorun.get("models", []))
+        if pending_qid != question["id"]:
             st.session_state.pending_autorun = None
-        elif find_result(results, question["id"], selected_model):
-            st.session_state.pending_autorun = None
-        elif not snapshot["running"]:
-            # Reset persistence marker for new auto-run as well.
-            st.session_state.last_persisted_run_id = 0
-            started = runner.start(
-                model=selected_model,
-                question_id=question["id"],
-                prompt=question["prompt"],
-                system_prompt=st.session_state.system_prompt,
-            )
-            if started:
+        else:
+            pending_models = [
+                model for model in pending_models if not find_result(results, question["id"], model)
+            ]
+            if not pending_models:
                 st.session_state.pending_autorun = None
-                st.rerun()
-
-    active_for_current = (
-        snapshot["question_id"] == question["id"]
-        and snapshot["model"] == selected_model
-        and (snapshot["running"] or snapshot["completed"])
-    )
-    saved = find_result(results, question["id"], selected_model) if selected_model else None
-    display_model_name = selected_model or "-"
-    display_latency_s: float | None = None
-    if active_for_current:
-        display_latency_s = snapshot["elapsed_ms"] / 1000.0
-    elif saved:
-        display_latency_s = (saved.get("response_time_ms") or 0.0) / 1000.0
-
-    response_header = f"Seçilen Model {display_model_name} Yanıtı"
-    if display_latency_s is not None:
-        response_header += f" | Yanıt süresi: {display_latency_s:.2f}s"
-    copy_response = ""
-    copy_key = f"resp_none_{question['id']}"
-    copy_disabled = True
-    if active_for_current:
-        copy_response = str(snapshot.get("response", ""))
-        copy_key = f"live_{question['id']}_{selected_model}"
-        copy_disabled = bool(snapshot["running"])
-    elif saved:
-        copy_response = str(saved.get("response", ""))
-        copy_key = f"saved_{question['id']}_{selected_model}"
-        copy_disabled = False
-
-    header_col, copy_col = st.columns([6, 1])
-    with header_col:
-        st.subheader(response_header)
-    with copy_col:
-        render_copy_button(
-            response_text=copy_response,
-            key=copy_key,
-            disabled=copy_disabled,
-        )
+            elif not snapshot["running"]:
+                st.session_state.persisted_run_entry_keys = []
+                started = runner.start(
+                    models=pending_models,
+                    question_id=question["id"],
+                    prompt=question["prompt"],
+                    system_prompt=st.session_state.system_prompt,
+                )
+                if started:
+                    st.session_state.pending_autorun = None
+                    st.rerun()
 
     response_view_options = ["Düz metin", "Render (MD/HTML)"]
     response_view_default_index = (
@@ -1053,75 +1081,131 @@ def render() -> None:
             label_visibility="collapsed",
         )
     st.session_state.response_view_mode_pref = response_view_mode
-    if active_for_current:
-        live_response = snapshot.get("response", "")
-        render_response_content(
-            response_text=str(live_response),
-            view_mode=response_view_mode,
-        )
-        if not str(live_response).strip():
-            st.warning("Yanıt henüz gelmedi veya boş döndü.")
-        if snapshot.get("error"):
-            st.error(snapshot["error"])
-        elif snapshot.get("interrupted"):
-            st.warning("Çalışma kullanıcı tarafından durduruldu.")
-        if snapshot.get("completed") and not snapshot.get("running") and saved:
-            render_result_meta(saved)
-    elif saved:
-        saved_response = saved.get("response", "")
-        render_response_content(
-            response_text=str(saved_response),
-            view_mode=response_view_mode,
-        )
-        if not str(saved_response).strip():
-            st.warning("Bu kayıtta model yanıtı boş.")
-        render_result_meta(saved)
-    else:
-        render_response_content(
-            response_text="",
-            view_mode=response_view_mode,
-        )
-        if selected_model:
-            st.info("Seçili model için henüz kayıt yok.")
-        else:
-            st.info("Lütfen bir model seçin.")
+    panel_models = selected_models or [""]
+    response_columns = st.columns(len(panel_models)) if len(panel_models) > 1 else [st.container()]
+    for panel_index, model in enumerate(panel_models):
+        with response_columns[panel_index]:
+            active_entry = find_snapshot_entry(snapshot, question["id"], model) if model else None
+            saved = find_result(results, question["id"], model) if model else None
+            display_latency_s: float | None = None
+            if active_entry:
+                display_latency_s = float(active_entry.get("elapsed_ms", 0.0)) / 1000.0
+            elif saved:
+                display_latency_s = float(saved.get("response_time_ms") or 0.0) / 1000.0
 
-    manual_target = saved
-    if active_for_current and snapshot["completed"] and not snapshot["running"]:
-        manual_target = find_result(results, question["id"], selected_model) if selected_model else manual_target
+            response_header = f"{model or 'Model Seçilmedi'} Yanıtı"
+            if display_latency_s is not None:
+                response_header += f" | Yanıt süresi: {display_latency_s:.2f}s"
 
-    st.subheader("Manuel Karar")
-    c1, c2, c3 = st.columns(3)
-    can_override = bool(selected_model and manual_target)
-    if c1.button("Başarılı", use_container_width=True, disabled=not can_override):
-        updated = dict(manual_target)
-        updated["status"] = "success"
-        updated["score"] = 1
-        updated["auto_scored"] = False
-        updated["reason"] = "Kullanıcı onayı"
-        updated["interrupted"] = False
-        updated["timestamp"] = datetime.now(timezone.utc).isoformat()
-        results = persist_result_record(results, questions, updated)
-        st.success("Manuel durum: Başarılı")
-    if c2.button("Başarısız", use_container_width=True, disabled=not can_override):
-        updated = dict(manual_target)
-        updated["status"] = "fail"
-        updated["score"] = 0
-        updated["auto_scored"] = False
-        updated["reason"] = "Kullanıcı onayı"
-        updated["interrupted"] = False
-        updated["timestamp"] = datetime.now(timezone.utc).isoformat()
-        results = persist_result_record(results, questions, updated)
-        st.warning("Manuel durum: Başarısız")
-    if c3.button("İnceleme", use_container_width=True, disabled=not can_override):
-        updated = dict(manual_target)
-        updated["status"] = "manual_review"
-        updated["score"] = None
-        updated["auto_scored"] = False
-        updated["reason"] = "Kullanıcı manuel inceleme işaretledi"
-        updated["timestamp"] = datetime.now(timezone.utc).isoformat()
-        results = persist_result_record(results, questions, updated)
-        st.info("Manuel durum: İnceleme")
+            copy_response = ""
+            copy_key = f"resp_none_{question['id']}_{panel_index}"
+            copy_disabled = True
+            if active_entry:
+                copy_response = str(active_entry.get("response", ""))
+                copy_key = f"live_{question['id']}_{model}"
+                copy_disabled = bool(active_entry.get("running"))
+            elif saved:
+                copy_response = str(saved.get("response", ""))
+                copy_key = f"saved_{question['id']}_{model}"
+                copy_disabled = False
+
+            header_col, copy_col = st.columns([6, 1])
+            with header_col:
+                st.subheader(response_header)
+            with copy_col:
+                render_copy_button(
+                    response_text=copy_response,
+                    key=copy_key,
+                    disabled=copy_disabled,
+                )
+
+            if active_entry:
+                live_response = str(active_entry.get("response", ""))
+                render_response_content(
+                    response_text=live_response,
+                    view_mode=response_view_mode,
+                    key=f"response_live_{question['id']}_{model}",
+                )
+                if not live_response.strip():
+                    st.warning("Yanıt henüz gelmedi veya boş döndü.")
+                if active_entry.get("error"):
+                    st.error(str(active_entry["error"]))
+                elif active_entry.get("interrupted"):
+                    st.warning("Çalışma kullanıcı tarafından durduruldu.")
+                if saved:
+                    render_result_meta(saved)
+            elif saved:
+                saved_response = str(saved.get("response", ""))
+                render_response_content(
+                    response_text=saved_response,
+                    view_mode=response_view_mode,
+                    key=f"response_saved_{question['id']}_{model}",
+                )
+                if not saved_response.strip():
+                    st.warning("Bu kayıtta model yanıtı boş.")
+                render_result_meta(saved)
+            else:
+                render_response_content(
+                    response_text="",
+                    view_mode=response_view_mode,
+                    key=f"response_empty_{question['id']}_{panel_index}",
+                )
+                if model:
+                    st.info("Seçili model için henüz kayıt yok.")
+                else:
+                    st.info("Lütfen en az bir model seçin.")
+
+            manual_target = saved
+            if active_entry and active_entry.get("completed"):
+                manual_target = find_result(results, question["id"], model) if model else manual_target
+
+            st.subheader("Manuel Karar")
+            c1, c2, c3 = st.columns(3)
+            can_override = bool(model and manual_target)
+            if c1.button(
+                "Başarılı",
+                use_container_width=True,
+                disabled=not can_override,
+                key=f"manual_success_{question['id']}_{model or panel_index}",
+            ):
+                updated = dict(manual_target)
+                updated["status"] = "success"
+                updated["score"] = 1
+                updated["auto_scored"] = False
+                updated["reason"] = "Kullanıcı onayı"
+                updated["interrupted"] = False
+                updated["timestamp"] = datetime.now(timezone.utc).isoformat()
+                results = persist_result_record(results, questions, updated)
+                st.success("Manuel durum: Başarılı")
+            if c2.button(
+                "Başarısız",
+                use_container_width=True,
+                disabled=not can_override,
+                key=f"manual_fail_{question['id']}_{model or panel_index}",
+            ):
+                updated = dict(manual_target)
+                updated["status"] = "fail"
+                updated["score"] = 0
+                updated["auto_scored"] = False
+                updated["reason"] = "Kullanıcı onayı"
+                updated["interrupted"] = False
+                updated["timestamp"] = datetime.now(timezone.utc).isoformat()
+                results = persist_result_record(results, questions, updated)
+                st.warning("Manuel durum: Başarısız")
+            if c3.button(
+                "İnceleme",
+                use_container_width=True,
+                disabled=not can_override,
+                key=f"manual_review_{question['id']}_{model or panel_index}",
+            ):
+                updated = dict(manual_target)
+                updated["status"] = "manual_review"
+                updated["score"] = None
+                updated["auto_scored"] = False
+                updated["reason"] = "Kullanıcı manuel inceleme işaretledi"
+                updated["timestamp"] = datetime.now(timezone.utc).isoformat()
+                results = persist_result_record(results, questions, updated)
+                st.info("Manuel durum: İnceleme")
 
     render_metrics_panel(results)
     render_matrix_panel(questions, results)
